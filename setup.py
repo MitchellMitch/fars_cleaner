@@ -24,11 +24,12 @@ setup(
         "scipy>=1.7.0",
         "pathlib",
         "pyjanitor>=0.23.1",
-        "dask==2022.6.1",
+        "dask==2025.05.0",
         "distributed>=2022",
         "requests",
         "tqdm",
         "thefuzz",
+        "pyarrow",
     ],
     extras_require={
         "dev": ["pytest>=7.1.0", "hypothesis"],
