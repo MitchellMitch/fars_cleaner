@@ -1,2 +1,4 @@
-include fars_cleaner/registry.txt
-include fars_cleaner/lookup_tables/*.xlsx
+include README.md
+include LICENSE
+recursive-include fars_cleaner *
+global-exclude *.py[cod] __pycache__ *.so

@@ -17,7 +17,7 @@ scipy = "^1.7.0"
 
 pathlib = "*"
 pyjanitor = "^0.23.1"
-dask = "*"
+dask = "2022.6.1"
 distributed = "^2022"
 requests = "*"
 tqdm = "*"
