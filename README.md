@@ -29,13 +29,14 @@ pip install fars-cleaner
 
 ### Downloading FARS data
 The `FARSFetcher` class provides an interface to download and unzip selected years from the NHTSA FARS FTP server. 
-The class uses `pooch` to download and unzip the selected files. By default, files are unzipped to your OS's cache directory.
+The downloads include progress bars for both downloading and extracting files. By default, files are stored in a `.cache/fars` directory within your home directory.
 
 ```python
 from fars_cleaner import FARSFetcher
 
-# Prepare for FARS file download, using the OS cache directory. 
-fetcher = FARSFetcher()
+# Prepare for FARS file download, using the default cache directory.
+# Progress bars will be displayed during download and extraction
+fetcher = FARSFetcher(show_progress=True)
 ```
 Suggested usage is to download files to a data directory in your current project directory. 
 Passing `project_dir` will download files to `project_dir/data/fars` by default. This behavior can be 
@@ -99,6 +100,10 @@ Downloading and processing the full FARS dataset currently runs out of memory on
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change. See [CONTRIBUTING.md](CONTRIBUTING.md) for more details.
+
+## Version History
+- **1.4.0** - Removed dependency on Pooch library. Now using direct downloads with progress bars via requests and tqdm.
+- **1.3.5** - Previous version
 
 ## License
 [BSD-3 Clause](https://choosealicense.com/licenses/bsd-3-clause/)

@@ -19,12 +19,14 @@ logger.info(f"Using directory: {test_dir.absolute()}")
 try:
     # Initialize the fetcher with debug info
     logger.info("Initializing FARSFetcher...")
-    fetcher = FARSFetcher(project_dir=test_dir)
+    # Progress bar will be displayed automatically when downloading files
+    fetcher = FARSFetcher(project_dir=test_dir, show_progress=True)
     logger.info(f"Cache path: {fetcher.cache_path}")
     
     # Download data for a single year (using a recent year)
     year = 2018  # Use a small recent dataset
     logger.info(f"Downloading data for year {year}...")
+    # This will download the file with a progress bar and extract with a progress bar
     fetcher.fetch_single(year)
     
     # Process the data

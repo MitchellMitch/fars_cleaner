@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="fars_cleaner",
-    version="1.3.5",
+    version="1.4.0",
     description="A package for loading and preprocessing the NHTSA FARS crash database",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
@@ -18,16 +18,15 @@ setup(
     packages=find_packages(),
     python_requires=">=3.8",
     install_requires=[
-        "pooch>=1.6.0",
-        "pandas>=1.4.0",
+        "pandas>=2.0.0",
         "numpy>=1.22.0",
         "scipy>=1.7.0",
         "pathlib",
         "pyjanitor>=0.23.1",
         "dask==2025.05.0",
         "distributed>=2022",
-        "requests",
-        "tqdm",
+        "urllib3>=2.0.0",
+        "tqdm>=4.64.0",
         "thefuzz",
         "pyarrow",
     ],
