@@ -23,19 +23,15 @@ try:
     fetcher = FARSFetcher(project_dir=test_dir, show_progress=True)
     logger.info(f"Cache path: {fetcher.cache_path}")
     
-    # Download data for a single year (using a recent year)
-    year = 2018  # Use a small recent dataset
-    logger.info(f"Downloading data for year {year}...")
-    # This will download the file with a progress bar and extract with a progress bar
-    fetcher.fetch_single(year)
-    
+
     # Process the data
     logger.info("Processing the downloaded data...")
     vehicles, accidents, people = load_pipeline(
         fetcher=fetcher,
         first_run=True,
         target_folder=test_dir,
-        years=[year]  # Limit to just the year we downloaded
+        start_year=2018,
+        end_year=2019,
     )
     
     # Print some basic info about the loaded data
