@@ -28,7 +28,7 @@ from fars_cleaner import FARSFetcher
 
 def load_pipeline(
         start_year=1975,
-        end_year=2021,
+        end_year=2023,
         first_run=True,
         target_folder=None,
         load_from=None,
@@ -517,11 +517,12 @@ def load_basic(year, use_dask=False, data_dir=None, mapping=None, client=None):
 
     cur_year = data_dir / f"{year}.unzip"
 
-
+    # Check if there is only one subdirectory and use it
+    subdirs = [d for d in os.listdir(cur_year) if os.path.isdir(cur_year / d)]
+    if len(subdirs) == 1:
+        cur_year = cur_year / subdirs[0]
+       
     cur_dir_files = os.listdir(cur_year)
-    #veh_suggestions = fuzzyfinder("VEHICLE.csv", cur_dir_files)
-    #per_suggestions = fuzzyfinder("PERSON.csv", cur_dir_files)
-    #acc_suggestions = fuzzyfinder("ACCIDENT.csv", cur_dir_files)
     veh_suggestions = fuzzyprocess.extractOne("VEHICLE.csv", cur_dir_files)
     per_suggestions = fuzzyprocess.extractOne("PERSON.csv", cur_dir_files)
     acc_suggestions = fuzzyprocess.extractOne("ACCIDENT.csv", cur_dir_files)
@@ -559,32 +560,52 @@ def load_basic(year, use_dask=False, data_dir=None, mapping=None, client=None):
         if toap not in skip_veh:
             namedskip.append(toap)
     skip_veh.extend(namedskip)
+
+    # List of encodings to try
+    encodings = ['utf-8', 'cp1252', 'latin1', 'iso-8859-1']
+    
+    def try_read_csv(file_path, encodings, **kwargs):
+        for encoding in encodings:
+            try:
+                return pd.read_csv(file_path, encoding=encoding, **kwargs)
+            except UnicodeDecodeError:
+                continue
+        raise UnicodeDecodeError(f"Failed to read file with any of these encodings: {encodings}")
+
     if use_dask:
+        # For Dask, we'll try to read with pandas first to determine the correct encoding
+        encoding_to_use = None
+        for enc in encodings:
+            try:
+                # Try reading first few rows to test encoding
+                pd.read_csv(vehicle_file, encoding=enc, nrows=5)
+                encoding_to_use = enc
+                break
+            except UnicodeDecodeError:
+                continue
+        
+        if encoding_to_use is None:
+            raise UnicodeDecodeError(f"Could not find valid encoding among: {encodings}")
 
         veh_df = dd.from_pandas(pd.read_csv(vehicle_file,
-                                            # encoding='ansi',
-                                            encoding='cp1252',
+                                            encoding=encoding_to_use,
                                             low_memory=False,
                                             usecols=lambda x: x not in skip_veh,
                                             dtype={'DEATHS': 'float64',
                                                    'OCUPANTS': 'float64'}),
                                 npartitions=1).rename(columns=veh_cols)
-        per_df = dd.from_pandas(pd.read_csv(person_file, encoding='cp1252',
+        per_df = dd.from_pandas(pd.read_csv(person_file, 
+                                            encoding=encoding_to_use,
                                             usecols=lambda x: x not in skip_per,
                                             low_memory=False),
                                 npartitions=1).rename(columns=per_cols)
-
-        acc_df = dd.from_pandas(pd.read_csv(accident_file, encoding='cp1252',
+        acc_df = dd.from_pandas(pd.read_csv(accident_file, 
+                                            encoding=encoding_to_use,
                                             low_memory=False),
                                 npartitions=1).rename(columns=acc_cols)
-
-        acc_df = dd.read_csv(accident_file, encoding='cp1252',
-                             low_memory=False,
-                             assume_missing=True).rename(columns=acc_cols)
     else:
-        veh_df = pd.read_csv(vehicle_file,
-                             # encoding='ansi',
-                             encoding='cp1252',
+        veh_df = try_read_csv(vehicle_file,
+                             encodings=encodings,
                              low_memory=True,
                              usecols=lambda x: x not in skip_veh,
                              dtype={'DEATHS': 'float64',
@@ -596,12 +617,15 @@ def load_basic(year, use_dask=False, data_dir=None, mapping=None, client=None):
                                     'VIN_10': 'str', 'VIN_11': 'str', 'VIN_12': 'str',
                                     'CYLINDER': 'str', 'TRLR1VIN': 'str', 'TRLR2VIN': 'str',
                                     'TRLR3VIN': 'str'
-                                    }
-                             ).rename(columns=veh_cols)
-        per_df = pd.read_csv(person_file, encoding='cp1252',
+                                    }).rename(columns=veh_cols)
+                                    
+        per_df = try_read_csv(person_file,
+                             encodings=encodings,
                              usecols=lambda x: x not in skip_per and not x.endswith("NAME"),
                              low_memory=True).rename(columns=per_cols)
-        acc_df = pd.read_csv(accident_file, encoding='cp1252',
+                             
+        acc_df = try_read_csv(accident_file,
+                             encodings=encodings,
                              usecols=lambda x: not x.endswith("NAME"),
                              low_memory=True).rename(columns=acc_cols)
 

@@ -86,7 +86,16 @@ class FARSFetcher:
         with open(file_path, "rb") as f:
             for byte_block in iter(lambda: f.read(4096), b""):
                 sha256_hash.update(byte_block)
-        return sha256_hash.hexdigest() == expected_hash
+
+        hash_valid = sha256_hash.hexdigest() == expected_hash
+
+        if not hash_valid:
+            print(f"Hash verification failed for {file_path}")
+            print(f"Expected hash: {expected_hash}")
+            print(f"Calculated hash: {sha256_hash.hexdigest()}")
+  
+        return hash_valid
+
     
     def _download_file(self, url, target_path):
         """Download a file with progress bar using urllib3 (HTTP/1.1)."""
