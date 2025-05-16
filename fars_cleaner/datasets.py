@@ -7,7 +7,7 @@ import zipfile
 from pathlib import Path
 from tqdm import tqdm
 import shutil
-import subprocess
+import urllib3
 
 class FARSFetcher:
     def __init__(self,
@@ -89,41 +89,76 @@ class FARSFetcher:
         return sha256_hash.hexdigest() == expected_hash
     
     def _download_file(self, url, target_path):
-        """Download a file with progress bar using curl (HTTP/1.1)."""
+        """Download a file with progress bar using urllib3 (HTTP/1.1)."""
         print(f"Sending request to {url}")
         try:
-            # Construct the curl command
-            curl_command = [
-                'curl',
-                '--http1.1',
-                '-L',  # Follow redirects
-                '-o', str(target_path),  # Output to target_path
-                url
-            ]
+            # Create a pool manager for HTTP/1.1
+            http = urllib3.PoolManager(
+                headers={
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/123.0',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.5',
+                    'Accept-Encoding': 'gzip, deflate, br, zstd',
+                    'Connection': 'keep-alive',
+                    'Upgrade-Insecure-Requests': '1',
+                    'Sec-Fetch-Dest': 'document',
+                    'Sec-Fetch-Mode': 'navigate',
+                    'Sec-Fetch-Site': 'none',
+                    'Sec-Fetch-User': '?1',
+                    'Priority': 'u=0, i'
+                }
+            )
+            
+            print(f"Using urllib3 with HTTP/1.1")
+            
+            # Make a GET request
+            response = http.request(
+                'GET',
+                url,
+                preload_content=False,  # Don't preload content, we'll stream it
+                redirect=True,          # Follow redirects
+                timeout=30.0,            # 30 second timeout
 
-            if self.show_progress:
-                curl_command.extend(['-#']) # Show progress bar
-            else:
-                curl_command.extend(['-sS']) # Silent mode with error reporting
-
-
-            print(f"Executing command: {' '.join(curl_command)}")
-
-            # Execute the command.
-            # If check=True, CalledProcessError is raised for non-zero exit codes.
-            # By not using capture_output=True (or stdout/stderr=PIPE),
-            # curl's stderr (where progress or errors go) will be printed to the terminal.
-            subprocess.run(curl_command, check=True, text=True)
-
-            print(f"Download completed: {target_path}")
-
-        except subprocess.CalledProcessError as e:
-            # e.stderr will contain the error output from curl.
-            error_message = e.stderr if e.stderr else "Curl command failed with no specific error message on stderr."
-            if e.stdout: # curl -o writes to file, so stdout is usually not where errors are for this command.
-                error_message += f"\nstdout: {e.stdout}"
-            print(f"Error during download (subprocess.CalledProcessError): {error_message}")
-            raise
+            )
+            
+            # Check response status
+            if response.status != 200:
+                raise Exception(f"HTTP Error: {response.status}")
+                
+            # Get content length if available
+            content_length = response.headers.get('Content-Length')
+            total_size = int(content_length) if content_length else 0
+            print(f"Content length: {total_size} bytes")
+            
+            # Set up progress bar
+            progress_bar = None
+            if self.show_progress and total_size > 0:
+                progress_bar = tqdm(total=total_size, unit='B', unit_scale=True, desc=f"Downloading {os.path.basename(target_path)}")
+            
+            # Download the file in chunks
+            bytes_downloaded = 0
+            with open(target_path, 'wb') as out_file:
+                while True:
+                    data = response.read(8192)
+                    if not data:
+                        break
+                    out_file.write(data)
+                    bytes_downloaded += len(data)
+                    if progress_bar:
+                        progress_bar.update(len(data))
+                    
+                    # Print progress periodically
+                    if bytes_downloaded % (1024 * 1024) == 0:  # Every 1MB
+                        print(f"Downloaded {bytes_downloaded / (1024 * 1024):.2f} MB so far")
+            
+            # Close the response
+            response.release_conn()
+            
+            if progress_bar:
+                progress_bar.close()
+                
+            print(f"Download completed: {bytes_downloaded} bytes")
+            
         except Exception as e:
             print(f"Error during download: {str(e)}")
             raise
