@@ -190,7 +190,7 @@ def load_pipeline(
         acc = pd.read_pickle(load_path / "accidents.pkl.xz")
         per = pd.read_pickle(load_path / "people.pkl.xz")
 
-        if start_year > 1975 or end_year < 2021:
+        if start_year > 1975 or end_year < 2023:
             veh = veh.query(f"YEAR >= {start_year} and YEAR <= {end_year}").reset_index()
             acc = veh.query(f"YEAR >= {start_year} and YEAR <= {end_year}").reset_index()
             per = per.query(f"YEAR >= {start_year} and YEAR <= {end_year}").reset_index()
