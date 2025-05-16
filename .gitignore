@@ -60,4 +60,4 @@ Thumbs.db
 # Unison File Sync leftovers
 *sync-conflict*
 
-./fars_test_data/
+./fars_test_data/*
