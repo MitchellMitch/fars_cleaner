@@ -127,7 +127,7 @@ def land_use(df):
     """Return rural/urban land use using NHTSA convention."""
     yr = df['YEAR']
 
-    func1 = df['LAND_USE']
+    func1 = df['LAND_USE'] if 'LAND_USE' in df.columns else pd.Series(-1, index=df.index)
     func2 = df['FUNC_SYS']
     if 'RUR_URB' in df.columns:
         func3 = df['RUR_URB']
